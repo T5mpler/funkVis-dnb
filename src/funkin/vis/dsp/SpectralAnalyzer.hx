@@ -54,7 +54,6 @@ class SpectralAnalyzer
     private var fft:FFT;
 	private var vis = new FFTVisualization();
     private var barHistories = new Array<RecentPeakFinder>();
-    private var blackmanWindow = new Array<Float>();
     #end
 
     private function freqToBin(freq:Float, mathType:MathType = Round):Int
@@ -130,16 +129,6 @@ class SpectralAnalyzer
         #end
     }
 
-    function resizeBlackmanWindow(size:Int)
-    {
-        #if !web
-        if (blackmanWindow.length == size) return;
-        blackmanWindow.resize(size);
-        for (i in 0...size) {
-            blackmanWindow[i] = calculateBlackmanWindow(i, size);
-        }
-        #end
-    }
 
 	public function new(audioSource:AudioSource, barCount:Int, maxDelta:Float = 0.01, peakHold:Int = 30)
 	{
@@ -156,7 +145,6 @@ class SpectralAnalyzer
         #end
 
         calcBars(barCount, peakHold);
-        resizeBlackmanWindow(fftN);
 	}
 
 	public function getLevels(?levels:Array<Bar>):Array<Bar>
@@ -213,7 +201,6 @@ class SpectralAnalyzer
 				for (c in 0...audioSource.buffer.channels) {
 					mixed[i] += 0.7 * signal[i*audioSource.buffer.channels+c];
 				}
-                mixed[i] *= blackmanWindow[i];
 			}
 			signal = mixed;
 		}
@@ -292,10 +279,6 @@ class SpectralAnalyzer
         return val <= min ? min : val >= max ? max : val;
     }
 
-    static function calculateBlackmanWindow(n:Int, fftN:Int)
-    {
-		return 0.42 - 0.50 * Math.cos(2 * Math.PI * n / (fftN - 1)) + 0.08 * Math.cos(4 * Math.PI * n / (fftN - 1));
-    }
 
     @:generic
     static public inline function min<T:Float>(x:T, y:T):T
@@ -338,7 +321,6 @@ class SpectralAnalyzer
         #end
 
         calcBars(barCount, peakHold);
-        resizeBlackmanWindow(fftN);
         return pow2;
     }
 }
