@@ -44,7 +44,7 @@ class SpectralAnalyzer
     private var audioSource:AudioSource;
     private var audioClip:AudioClip;
 	private var barCount:Int;
-    private var maxDelta:Float;
+    private var smoothingTimeConstant:Float;
     private var peakHold:Int;
     var fftN2:Int = 2048;
     #if web
@@ -130,12 +130,12 @@ class SpectralAnalyzer
     }
 
 
-	public function new(audioSource:AudioSource, barCount:Int, maxDelta:Float = 0.01, peakHold:Int = 30)
+	public function new(audioSource:AudioSource, barCount:Int, smoothingTimeConstant:Float = 0.8, peakHold:Int = 30)
 	{
         this.audioSource = audioSource;
 		this.audioClip = new LimeAudioClip(audioSource);
 		this.barCount = barCount;
-        this.maxDelta = maxDelta;
+        this.smoothingTimeConstant = smoothingTimeConstant;
         this.peakHold = peakHold;
 
         #if web
@@ -193,21 +193,36 @@ class SpectralAnalyzer
 
 		var signal = getSignal(segment, audioSource.buffer.bitsPerSample);
 
+		// Down-mix multichannel audio to mono for FFT analysis
 		if (audioSource.buffer.channels > 1) {
 			var mixed = new Array<Float>();
 			mixed.resize(Std.int(signal.length / audioSource.buffer.channels));
-			for (i in 0...mixed.length) {
-				mixed[i] = 0.0;
-				for (c in 0...audioSource.buffer.channels) {
-					mixed[i] += 0.7 * signal[i*audioSource.buffer.channels+c];
+
+			if (audioSource.buffer.channels == 2) {
+				// Stereo to mono: Web Audio API standard down-mixing
+				for (i in 0...mixed.length) {
+					var left = signal[i * 2];
+					var right = signal[i * 2 + 1];
+					mixed[i] = 0.5 * (left + right);
+				}
+			} else {
+				// Fallback for other channel counts (quad, 5.1, etc.)
+				// TODO: Implement proper down-mixing for quad and 5.1 layouts
+				for (i in 0...mixed.length) {
+					mixed[i] = 0.0;
+					for (c in 0...audioSource.buffer.channels) {
+						mixed[i] += signal[i * audioSource.buffer.channels + c];
+					}
+					mixed[i] /= audioSource.buffer.channels;
 				}
 			}
 			signal = mixed;
 		}
+		// Mono audio (channels == 1) requires no down-mixing, use signal as-is
 
-		var range = 16;
+		var range = 256;
         var freqs = fft.calcFreq(signal);
-		var bars = vis.makeLogGraph(freqs, barCount + 1, Math.floor(maxDb - minDb), range);
+		var bars = vis.makeLogGraph(freqs, barCount + 1, Math.floor(maxDb - minDb), range, fftN, audioClip.audioBuffer.sampleRate, minFreq, maxFreq);
 
         if (bars.length - 1 > barHistories.length) {
             barHistories.resize(bars.length - 1);
@@ -221,11 +236,18 @@ class SpectralAnalyzer
             var recentValues = barHistories[i];
             var value = bars[i] / range;
 
-            // slew limiting
+            // Web Audio API exponential smoothing: X'[k] = τ * X'_{-1}[k] + (1 - τ) * |X[k]|
             var lastValue = recentValues.lastValue;
-            if (maxDelta > 0.0) {
-                var delta = clamp(value - lastValue, -1 * maxDelta, maxDelta);
-                value = lastValue + delta;
+            if (smoothingTimeConstant > 0.0 && smoothingTimeConstant < 1.0) {
+                // Handle NaN/infinity as per Web Audio spec
+                if (Math.isNaN(value) || !Math.isFinite(value)) {
+                    value = 0.0;
+                }
+                // Apply exponential moving average
+                value = smoothingTimeConstant * lastValue + (1.0 - smoothingTimeConstant) * Math.abs(value);
+            } else {
+                // No smoothing or invalid smoothing constant
+                value = Math.abs(value);
             }
             recentValues.push(value);
 
