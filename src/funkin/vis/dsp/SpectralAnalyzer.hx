@@ -2,6 +2,7 @@ package funkin.vis.dsp;
 
 import flixel.FlxG;
 import flixel.math.FlxMath;
+import flixel.sound.FlxSound;
 import funkin.vis._internal.html5.AnalyzerNode;
 import funkin.vis.audioclip.frontends.LimeAudioClip;
 import grig.audio.FFT;
