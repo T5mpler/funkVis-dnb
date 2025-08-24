@@ -222,7 +222,7 @@ class SpectralAnalyzer
 
 		var range = 256;
         var freqs = fft.calcFreq(signal);
-		var bars = vis.makeLogGraph(freqs, barCount + 1, Math.floor(maxDb - minDb), range, fftN, audioClip.audioBuffer.sampleRate, minFreq, maxFreq);
+		var bars = vis.makeLogGraph(freqs, barCount + 1, Math.floor(maxDb - minDb), range);
 
         if (bars.length - 1 > barHistories.length) {
             barHistories.resize(bars.length - 1);
