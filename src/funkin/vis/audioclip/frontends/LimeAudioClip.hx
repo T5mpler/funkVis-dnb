@@ -22,7 +22,7 @@ class LimeAudioClip implements funkin.vis.AudioClip
     public var currentFrame(get, never):Int;
 	public var source:Dynamic;
 
-	public function new(audioSource:AudioSource)
+	public function new(audioSource:AudioSource, ?sound:FlxSound)
 	{
 		var data:lime.utils.UInt16Array = cast audioSource.buffer.data;
 
@@ -47,7 +47,11 @@ class LimeAudioClip implements funkin.vis.AudioClip
 		dataLength = audioBuffer.data.length;
 		#end
 
-		var value = Std.int(FlxMath.remapToRange(audioSource.currentTime, 0, audioSource.length, 0, dataLength));
+		var value = -1;
+		if (sound != null)
+			value = Std.int(FlxMath.remapToRange(sound.time, 0, sound.length, 0, dataLength));
+		else
+			value = Std.int(FlxMath.remapToRange(FlxG.sound.music.time, 0, FlxG.sound.music.length, 0, dataLength));
 
 		if (value < 0)
 			return -1;

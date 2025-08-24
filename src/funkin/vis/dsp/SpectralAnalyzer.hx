@@ -41,6 +41,7 @@ class SpectralAnalyzer
     public var minFreq:Float = 50;
     public var maxFreq:Float = 22000;
     // Awkwardly, we'll have to interfaces for now because there's too much platform specific stuff we need
+    private var sound:FlxSound;
     private var audioSource:AudioSource;
     private var audioClip:AudioClip;
 	private var barCount:Int;
@@ -130,10 +131,10 @@ class SpectralAnalyzer
     }
 
 
-	public function new(audioSource:AudioSource, barCount:Int, smoothingTimeConstant:Float = 0.8, peakHold:Int = 30)
+	public function new(audioSource:AudioSource, barCount:Int, smoothingTimeConstant:Float = 0.8, peakHold:Int = 30, ?sound:FlxSound)
 	{
         this.audioSource = audioSource;
-		this.audioClip = new LimeAudioClip(audioSource);
+		this.audioClip = new LimeAudioClip(audioSource, sound);
 		this.barCount = barCount;
         this.smoothingTimeConstant = smoothingTimeConstant;
         this.peakHold = peakHold;
