@@ -17,6 +17,7 @@ import lime.media.AudioSource;
  */
 class LimeAudioClip implements funkin.vis.AudioClip
 {
+	public var audioSource:AudioSource;
 	public var audioBuffer(default, null):AudioBuffer;
     public var currentFrame(get, never):Int;
 	public var source:Dynamic;
@@ -31,6 +32,7 @@ class LimeAudioClip implements funkin.vis.AudioClip
 		var sampleRate = audioSource.buffer.sampleRate;
 		#end
 
+		this.audioSource = audioSource;
 		this.audioBuffer = new AudioBuffer(data, sampleRate);
 		this.source = audioSource.buffer.src;
 	}
@@ -45,7 +47,7 @@ class LimeAudioClip implements funkin.vis.AudioClip
 		dataLength = audioBuffer.data.length;
 		#end
 
-		var value = Std.int(FlxMath.remapToRange(FlxG.sound.music.time, 0, FlxG.sound.music.length, 0, dataLength));
+		var value = Std.int(FlxMath.remapToRange(audioSource.time, 0, sound.length, 0, audioSource.length));
 
 		if (value < 0)
 			return -1;
